@@ -153,24 +153,24 @@ public class AutoRefreshTrade extends Module {
                 TradeOffer tradeOffer = list.get(size);
                 Item item = tradeOffer.getSellItem().getItem();
                 ItemStack sellStack = tradeOffer.getSellItem();
-                if (item instanceof EnchantedBookItem) {
+                if (item == Items.ENCHANTED_BOOK) {
                     findBook = true;
                     ItemEnchantmentsComponent enchantments = EnchantmentHelper.getEnchantments(sellStack);
                     enchantments.getEnchantments().forEach(entry -> {
                         int level = enchantments.getLevel(entry);
                         String name = Enchantment.getName(entry, level).getString();
-                        mc.player.sendMessage(Text.of("[LeavesHack]本次结果 " + name));
+                        mc.player.sendMessage(Text.of("[LeavesHack]本次结果 " + name), false);
                         for (RegistryKey<Enchantment> enchantmentKey : enchantmentList.get()){
                             if (hasEnchantments(sellStack, enchantmentKey) && level >= enchantmentLevel.get()) {
                                 find.set(true);
-                                mc.player.sendMessage(Text.of("[LeavesHack]:已找到所需附魔"));
+                                mc.player.sendMessage(Text.of("[LeavesHack]:已找到所需附魔"), false);
                                 return;
                             }
                         }
                     });
                 }
             }
-            if (!findBook) mc.player.sendMessage(Text.of("[LeavesHack]:本次未找到附魔书"));
+            if (!findBook) mc.player.sendMessage(Text.of("[LeavesHack]:本次未找到附魔书"), false);
             mc.getNetworkHandler().sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
             mc.currentScreen.close();
             if (find.get()) {

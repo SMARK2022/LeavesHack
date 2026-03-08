@@ -307,10 +307,10 @@ public class PacketMine extends Module {
             timer.reset();
             hasSwitch = true;
         }
-        if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
+        if (bypassGround.get() && !mc.player.isGliding() && targetPos != null && !isAir(targetPos)){
             mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
-                    mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
-            mc.player.onLanding();
+                    mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true, mc.player.horizontalCollision));
+            mc.player.fallDistance = 0.0f;
         }
         mc.player.swingHand(Hand.MAIN_HAND);
         sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, targetPos, BlockUtil.getClickSide(targetPos), id));

@@ -14,7 +14,6 @@ import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
@@ -77,15 +76,15 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTick(TickEvent.Pre event){
-        if (deBug.get()) mc.player.sendMessage(Text.of("[LeavesHack]:Speed: " + getSpeed()));
-        boolean wearingElytra = mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() == Items.ELYTRA && ElytraItem.isUsable(mc.player.getEquippedStack(EquipmentSlot.CHEST));
+        if (deBug.get()) mc.player.sendMessage(Text.of("[LeavesHack]:Speed: " + getSpeed()), false);
+        boolean wearingElytra = mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() == Items.ELYTRA && !mc.player.getEquippedStack(EquipmentSlot.CHEST).willBreakNextUse();
         if (!wearingElytra || mc.player.isOnGround()) {
-            mc.player.stopFallFlying();
+            mc.player.stopGliding();
             return;
         }
-        if (!mc.player.isFallFlying() && !mc.player.isOnGround() && mc.options.jumpKey.isPressed()) {
+        if (!mc.player.isGliding() && !mc.player.isOnGround() && mc.options.jumpKey.isPressed()) {
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-            mc.player.startFallFlying();
+            mc.player.startGliding();
         }
         if (!fireworkTimer.passedMs(delay.get())) return;
         if (wanToMove() && getSpeed() <= checkSpeed.get()) offFirework();
