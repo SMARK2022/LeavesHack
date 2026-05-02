@@ -47,7 +47,7 @@ public class AutoPlaceSlab extends Module {
     @EventHandler
     private void onRender3d(Render3DEvent event) {
         if (!placeTimer.passedMs(delay.get())) return;
-        int oldSlot = mc.player.getInventory().selectedSlot;
+        int oldSlot = mc.player.getInventory().getSelectedSlot();
         int slabSlot = InventoryUtil.findClass(SlabBlock.class);
         if (slabSlot == -1) return;
         InventoryUtil.switchToSlot(slabSlot);

@@ -13,12 +13,13 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.EquippableComponent;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ArmorItem;
-import net.minecraft.item.ElytraItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
@@ -79,10 +80,12 @@ public class AutoArmorPlus extends Module {
         armorMap.put(EquipmentSlot.CHEST, new int[]{38, getProtection(mc.player.getInventory().getStack(38)), -1, -1});
         armorMap.put(EquipmentSlot.HEAD, new int[]{39, getProtection(mc.player.getInventory().getStack(39)), -1, -1});
         for (int s = 0; s < 36; s++) {
-            if (!(mc.player.getInventory().getStack(s).getItem() instanceof ArmorItem) && mc.player.getInventory().getStack(s).getItem() != Items.ELYTRA)
+            ItemStack stack = mc.player.getInventory().getStack(s);
+            if (!isArmor(stack) && stack.getItem() != Items.ELYTRA)
                 continue;
-            int protection = getProtection(mc.player.getInventory().getStack(s));
-            EquipmentSlot slot = (mc.player.getInventory().getStack(s).getItem() instanceof ElytraItem ? EquipmentSlot.CHEST : ((ArmorItem) mc.player.getInventory().getStack(s).getItem()).getSlotType());
+            int protection = getProtection(stack);
+            EquipmentSlot slot = getEquipmentSlot(stack);
+            if (slot == null) continue;
             for (Map.Entry<EquipmentSlot, int[]> e : armorMap.entrySet()) {
                 if (e.getKey() == EquipmentSlot.FEET) {
                     if (mc.player.hurtTime > 1 && snowBug.get()) {
@@ -97,13 +100,13 @@ public class AutoArmorPlus extends Module {
                 }
                 FireworkElytraFly fireworkElytraFly = Modules.get().get(FireworkElytraFly.class);
                 if (autoElytra.get() && fireworkElytraFly.isActive() && e.getKey() == EquipmentSlot.CHEST) {
-                    if (!mc.player.getInventory().getStack(38).isEmpty() && mc.player.getInventory().getStack(38).getItem() instanceof ElytraItem && ElytraItem.isUsable(mc.player.getInventory().getStack(38))) {
+                    if (!mc.player.getInventory().getStack(38).isEmpty() && isUsableElytra(mc.player.getInventory().getStack(38))) {
                         continue;
                     }
-                    if (e.getValue()[2] != -1 && !mc.player.getInventory().getStack(e.getValue()[2]).isEmpty() && mc.player.getInventory().getStack(e.getValue()[2]).getItem() instanceof ElytraItem && ElytraItem.isUsable(mc.player.getInventory().getStack(e.getValue()[2]))) {
+                    if (e.getValue()[2] != -1 && !mc.player.getInventory().getStack(e.getValue()[2]).isEmpty() && isUsableElytra(mc.player.getInventory().getStack(e.getValue()[2]))) {
                         continue;
                     }
-                    if (!mc.player.getInventory().getStack(s).isEmpty() && mc.player.getInventory().getStack(s).getItem() instanceof ElytraItem && ElytraItem.isUsable(mc.player.getInventory().getStack(s))) {
+                    if (!stack.isEmpty() && isUsableElytra(stack)) {
                         e.getValue()[2] = s;
                     }
                     continue;
@@ -141,22 +144,47 @@ public class AutoArmorPlus extends Module {
         }
     }
     private int getProtection(ItemStack is) {
-        if (is.getItem() instanceof ArmorItem || is.getItem() == Items.ELYTRA) {
+        if (isArmor(is) || is.getItem() == Items.ELYTRA) {
             int prot = 0;
 
-            if (is.getItem() instanceof ElytraItem) {
-                if (!ElytraItem.isUsable(is)) return 0;
+            if (is.getItem() == Items.ELYTRA) {
+                if (!isUsableElytra(is)) return 0;
                 prot = 1;
             }
             if (is.hasEnchantments()) {
                 ItemEnchantmentsComponent enchantments = EnchantmentHelper.getEnchantments(is);
-                if (ignoreBinding.get() && enchantments.getEnchantments().contains(mc.world.getRegistryManager().get(Enchantments.BINDING_CURSE.getRegistryRef()).getEntry(Enchantments.BINDING_CURSE).get())) return -1;
-                prot += enchantments.getLevel(mc.world.getRegistryManager().get(Enchantments.PROTECTION.getRegistryRef()).getEntry(Enchantments.PROTECTION).get());
+                if (ignoreBinding.get() && com.dev.leavesHack.utils.entity.InventoryUtil.getEnchantmentLevel(is, Enchantments.BINDING_CURSE) > 0) return -1;
+                prot += com.dev.leavesHack.utils.entity.InventoryUtil.getEnchantmentLevel(is, Enchantments.PROTECTION);
             }
-            return (is.getItem() instanceof ArmorItem armorItem ? armorItem.getProtection() : 0) + prot;
+            return getArmorProtection(is.getItem()) + prot;
         } else if (!is.isEmpty()) {
             return 0;
         }
         return -1;
+    }
+
+    private boolean isArmor(ItemStack stack) {
+        EquipmentSlot slot = getEquipmentSlot(stack);
+        return slot == EquipmentSlot.HEAD || slot == EquipmentSlot.CHEST || slot == EquipmentSlot.LEGS || slot == EquipmentSlot.FEET;
+    }
+
+    private EquipmentSlot getEquipmentSlot(ItemStack stack) {
+        EquippableComponent equippable = stack.get(DataComponentTypes.EQUIPPABLE);
+        return equippable != null ? equippable.slot() : null;
+    }
+
+    private boolean isUsableElytra(ItemStack stack) {
+        return stack.getItem() == Items.ELYTRA && (!stack.isDamageable() || stack.getDamage() < stack.getMaxDamage() - 1);
+    }
+
+    private int getArmorProtection(Item item) {
+        if (item == Items.LEATHER_HELMET || item == Items.LEATHER_BOOTS || item == Items.GOLDEN_HELMET) return 1;
+        if (item == Items.LEATHER_LEGGINGS || item == Items.CHAINMAIL_HELMET || item == Items.GOLDEN_BOOTS || item == Items.TURTLE_HELMET) return 2;
+        if (item == Items.LEATHER_CHESTPLATE || item == Items.IRON_HELMET || item == Items.CHAINMAIL_BOOTS || item == Items.GOLDEN_LEGGINGS) return 3;
+        if (item == Items.CHAINMAIL_LEGGINGS || item == Items.GOLDEN_CHESTPLATE || item == Items.IRON_BOOTS) return 4;
+        if (item == Items.IRON_LEGGINGS || item == Items.DIAMOND_HELMET || item == Items.DIAMOND_BOOTS || item == Items.NETHERITE_HELMET || item == Items.NETHERITE_BOOTS) return 5;
+        if (item == Items.IRON_CHESTPLATE || item == Items.DIAMOND_LEGGINGS || item == Items.NETHERITE_LEGGINGS) return 6;
+        if (item == Items.DIAMOND_CHESTPLATE || item == Items.NETHERITE_CHESTPLATE) return 8;
+        return 0;
     }
 }

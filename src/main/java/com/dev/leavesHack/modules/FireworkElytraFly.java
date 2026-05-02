@@ -14,7 +14,6 @@ import net.minecraft.client.network.PendingUpdateManager;
 import net.minecraft.client.network.SequencedPacketCreator;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
@@ -77,15 +76,15 @@ public class FireworkElytraFly extends Module {
     }
     @EventHandler
     public void onTick(TickEvent.Pre event){
-        if (deBug.get()) mc.player.sendMessage(Text.of("[LeavesHack]:Speed: " + getSpeed()));
-        boolean wearingElytra = mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem() == Items.ELYTRA && ElytraItem.isUsable(mc.player.getEquippedStack(EquipmentSlot.CHEST));
+        if (deBug.get()) mc.player.sendMessage(Text.of("[LeavesHack]:Speed: " + getSpeed()), false);
+        boolean wearingElytra = isUsableElytra(mc.player.getEquippedStack(EquipmentSlot.CHEST));
         if (!wearingElytra || mc.player.isOnGround()) {
-            mc.player.stopFallFlying();
+            mc.player.stopGliding();
             return;
         }
-        if (!mc.player.isFallFlying() && !mc.player.isOnGround() && mc.options.jumpKey.isPressed()) {
+        if (!mc.player.isGliding() && !mc.player.isOnGround() && mc.options.jumpKey.isPressed()) {
             sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-            mc.player.startFallFlying();
+            mc.player.startGliding();
         }
         if (!fireworkTimer.passedMs(delay.get())) return;
         if (wanToMove() && getSpeed() <= checkSpeed.get()) offFirework();
@@ -100,13 +99,13 @@ public class FireworkElytraFly extends Module {
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.OFF_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             fireworkTimer.reset();
         } else if (inventorySwap.get() && (firework = InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET)) != -1) {
-            InventoryUtil.inventorySwap(firework, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(firework, mc.player.getInventory().getSelectedSlot());
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
-            InventoryUtil.inventorySwap(firework, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(firework, mc.player.getInventory().getSelectedSlot());
             sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
             fireworkTimer.reset();
         } else if ((firework = InventoryUtil.findItem(Items.FIREWORK_ROCKET)) != -1) {
-            int old = mc.player.getInventory().selectedSlot;
+            int old = mc.player.getInventory().getSelectedSlot();
             InventoryUtil.switchToSlot(firework);
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, mc.player.getYaw(), mc.player.getPitch()));
             InventoryUtil.switchToSlot(old);
@@ -124,12 +123,16 @@ public class FireworkElytraFly extends Module {
         return mc.options.forwardKey.isPressed() || mc.options.backKey.isPressed() || mc.options.leftKey.isPressed() || mc.options.rightKey.isPressed();
     }
     private double getSpeed() {
-        double x = mc.player.getX() - mc.player.prevX;
-        double z = mc.player.getZ() - mc.player.prevZ;
+        double x = mc.player.getX() - mc.player.lastX;
+        double z = mc.player.getZ() - mc.player.lastZ;
         double dist = Math.sqrt(x * x + z * z) / 1000.0;
         double div = 0.05 / 3600.0;
         float timer = 1f;
         double speed = dist / div * timer;
         return speed;
+    }
+
+    private boolean isUsableElytra(ItemStack stack) {
+        return stack.getItem() == Items.ELYTRA && (!stack.isDamageable() || stack.getDamage() < stack.getMaxDamage() - 1);
     }
 }

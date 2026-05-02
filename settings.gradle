@@ -1,5 +1,6 @@
 pluginManagement {
     repositories {
+        mavenLocal()
         maven {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'
@@ -7,4 +8,11 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+}
+
+// Resolve meteordevelopment:meteor-client from the local Meteor workspace when this
+// addon is cloned under addon/.
+def localMeteorRoot = file("../..")
+if (new File(localMeteorRoot, "build.gradle.kts").exists()) {
+    includeBuild(localMeteorRoot)
 }

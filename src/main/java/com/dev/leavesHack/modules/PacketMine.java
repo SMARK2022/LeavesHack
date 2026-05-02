@@ -301,15 +301,15 @@ public class PacketMine extends Module {
             return;
         }
         int bestSlot = getTool(targetPos);
-        if (!hasSwitch) oldSlot = mc.player.getInventory().selectedSlot;
+        if (!hasSwitch) oldSlot = mc.player.getInventory().getSelectedSlot();
         if (silentSwitch.get() && bestSlot != -1) {
             InventoryUtil.switchToSlot(bestSlot);
             timer.reset();
             hasSwitch = true;
         }
-        if (bypassGround.get() && !mc.player.isFallFlying() && targetPos != null && !isAir(targetPos)){
+        if (bypassGround.get() && !mc.player.isGliding() && targetPos != null && !isAir(targetPos)){
             mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY() + 1.0e-9,
-                    mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true));
+                    mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), true, mc.player.horizontalCollision));
             mc.player.onLanding();
         }
         mc.player.swingHand(Hand.MAIN_HAND);

@@ -6,13 +6,13 @@ import it.unimi.dsi.fastutil.objects.Object2IntMaps;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.PickFromInventoryC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -27,7 +27,8 @@ public class InventoryUtil {
     static int lastSelect = -1;
     public static int getEquipmentLevel(PlayerEntity player, RegistryKey<Enchantment> enchantmentKey) {
         int maxLevel = 0;
-        for (ItemStack stack : player.getArmorItems()) {
+        for (EquipmentSlot slot : new EquipmentSlot[]{ EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET }) {
+            ItemStack stack = player.getEquippedStack(slot);
             if (!stack.isEmpty()) {
                 int level = getEnchantmentLevel(stack, enchantmentKey);
                 if (level > maxLevel) {
@@ -89,7 +90,7 @@ public class InventoryUtil {
         return mc.player.getInventory().getStack(i);
     }
     public static void switchToSlot(int slot) {
-        mc.player.getInventory().selectedSlot = slot;
+        mc.player.getInventory().setSelectedSlot(slot);
         sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
     public static int findItem(Item input) {
